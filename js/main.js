@@ -58,19 +58,20 @@ let gapBetweenPillars = 300;
 
 function preload() {
   // UI Assets
-  this.load.image("text1", "assets/images/text1.png");
-  this.load.image("text2", "assets/images/text2.png");
-  this.load.image("play_button", "assets/images/play_btn.png");
+  this.load.image("text1", "assets/ui/text1.png");
+  this.load.image("text2", "assets/ui/text2.png");
+  this.load.image("play_button", "assets/ui/play_btn.png");
 
-  // Game Objects
+  // Game Object Assets
   this.load.image("background", "assets/images/bg1.png");
   this.load.image("top_pillar", "assets/images/top_pillar1.png");
   this.load.image("bottom_pillar", "assets/images/bottom_pillar1.png");
   this.load.image("road", "assets/images/road.png");
-  this.load.spritesheet("bird", "assets/images/bird.png", {
-    frameWidth: 64,
-    frameHeight: 96,
-  });
+
+  // Sprite Assets
+  this.load.image("bird_up", "assets/sprites/bird_wu1.png");
+  this.load.image("bird_mid", "assets/sprites/bird_wm1.png");
+  this.load.image("bird_down", "assets/sprites/bird_wd1.png");
 }
 
 function create() {
@@ -82,7 +83,14 @@ function create() {
     .setOrigin(0, 0);
 
   // Bird setup
-  bird = this.physics.add.sprite(250, 280, "bird").setScale(2);
+  this.anims.create({
+    key: "fly",
+    frames: [{ key: "bird_up" }, { key: "bird_mid" }, { key: "bird_down" }],
+    frameRate: 10,
+    repeat: -1,
+  });
+  bird = this.physics.add.sprite(250, 280, "bird_mid");
+  bird.play("fly");
   bird.setBounce(0.2);
   bird.setCollideWorldBounds(true);
   bird.body.setAllowGravity(false);
@@ -116,7 +124,7 @@ function create() {
 }
 
 function createRandomPillars(scene, x) {
-  const gapY = Phaser.Math.Between(50, 550 - gapSize);
+  const gapY = Phaser.Math.Between(80, 550 - gapSize);
 
   topPillar = scene.physics.add
     .staticImage(x, gapY, "top_pillar")
@@ -141,7 +149,7 @@ function uiStepup(scene) {
   text2 = scene.add.image(250, 200, "text2");
   text2.setVisible(false);
 
-  playBtn = scene.add.image(250, 400, "play_button");
+  playBtn = scene.add.image(250, 380, "play_button");
   playBtn.setInteractive();
   playBtn.on("pointerdown", () => {
     playBtn.setScale(0.9);
@@ -164,34 +172,36 @@ function handleGameStart() {
 }
 
 function update() {
-  if (!hasLanded && !hasCollided && isGameStarted) {
+  if (!hasLanded && !hasCollided) {
     // Game Object Animations
     background.tilePositionX += playSpeed;
     road.tilePositionX += playSpeed;
     road.setDepth(1);
 
-    pillarPairs.forEach((pair) => {
-      if (pair.topPillar) {
-        pair.topPillar.x -= playSpeed;
-        pair.topPillar.refreshBody();
-      }
+    if (isGameStarted) {
+      pillarPairs.forEach((pair) => {
+        if (pair.topPillar) {
+          pair.topPillar.x -= playSpeed;
+          pair.topPillar.refreshBody();
+        }
 
-      if (pair.bottomPillar) {
-        pair.bottomPillar.x -= playSpeed;
-        pair.bottomPillar.refreshBody();
-        bottomPillar.setDepth(0);
-      }
-    });
+        if (pair.bottomPillar) {
+          pair.bottomPillar.x -= playSpeed;
+          pair.bottomPillar.refreshBody();
+          bottomPillar.setDepth(0);
+        }
+      });
 
-    // New Pillar Generation
-    const lastPair = pillarPairs[pillarPairs.length - 1];
-    if (lastPair.topPillar.x < gapBetweenPillars + 50) {
-      const newpair = createRandomPillars(
-        this,
-        lastPair.topPillar.x + gapBetweenPillars,
-      );
-      pillarPairs.push(newpair);
-      pillarPairs.shift();
+      // New Pillar Generation
+      const lastPair = pillarPairs[pillarPairs.length - 1];
+      if (lastPair.topPillar.x < gapBetweenPillars + 50) {
+        const newpair = createRandomPillars(
+          this,
+          lastPair.topPillar.x + gapBetweenPillars,
+        );
+        pillarPairs.push(newpair);
+        pillarPairs.shift();
+      }
     }
   } else if (hasLanded || hasCollided) {
     text2.setVisible(true);
