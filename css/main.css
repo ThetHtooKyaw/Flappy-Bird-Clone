@@ -1,0 +1,14 @@
+html,
+body {
+  margin: 20px;
+  min-height: 100%;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f0f0;
+  overflow-y: hidden;
+}
