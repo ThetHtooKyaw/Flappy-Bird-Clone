@@ -26,7 +26,7 @@ let config = {
 let game = new Phaser.Game(config);
 
 // Input Key Variables
-let cursors;
+let spaceKey;
 
 // UI Object Variables
 let text1;
@@ -42,18 +42,23 @@ let bird;
 let idleTween;
 
 // Game State Variables
-const flySpeed = -200;
-const playSpeed = 1.5;
-let score = 0;
-let instructionMsg;
-
-// Update Function Variables
 let isGameStarted = false;
 let hasShownGameOver = false;
 let hasLanded = false;
 let hasCollided = false;
 
-// Pillar Function Variables
+// Game Speed Variables
+const playSpeed = 3;
+const flyHeight = -250;
+const fallSpeed = 4;
+let lastFlapTime = 0;
+
+// Score Variables
+let scoreImage = [];
+let score = 0;
+let digitWidth = 30;
+
+// Pillar Variables
 let pillarGroup;
 const pillarPairs = [];
 const gapSize = 100;
@@ -64,6 +69,15 @@ function preload() {
   this.load.image("text1", "assets/ui/text1.png");
   this.load.image("text2", "assets/ui/text2.png");
   this.load.image("play_button", "assets/ui/play_btn.png");
+  for (let i = 0; i <= 9; i++) {
+    this.load.image("num" + i, `assets/ui/num${i}.png`);
+  }
+
+  // Sound Assets
+  this.load.audio("score", "assets/sounds/score.wav");
+  this.load.audio("fly", "assets/sounds/wing.wav");
+  this.load.audio("hit", "assets/sounds/hit.wav");
+  this.load.audio("die", "assets/sounds/die.wav");
 
   // Game Object Assets
   this.load.image("background", "assets/images/bg1.png");
@@ -80,7 +94,8 @@ function preload() {
 function create() {
   resetState();
 
-  cursors = this.input.keyboard.createCursorKeys();
+  // Input setup
+  spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
   // Background setup
   background = this.add
@@ -98,8 +113,10 @@ function create() {
   this.physics.add.overlap(bird, pillarGroup, () => {
     if (!hasCollided) {
       hasCollided = true;
+      this.sound.play("hit");
       this.cameras.main.flash(100, 255, 255, 255);
       this.cameras.main.shake(100, 0.001);
+      this.sound.play("die");
     }
   });
 
@@ -113,54 +130,71 @@ function create() {
     .tileSprite(250, 560, canvasWidth, 100, "road")
     .setOrigin(0.5, 0.5);
   this.physics.add.existing(road, true);
+  road.setDepth(1);
 
-  this.physics.add.overlap(bird, road, () => (hasLanded = true));
+  this.physics.add.overlap(bird, road, () => {
+    if (!hasLanded) {
+      hasLanded = true;
+      if (!hasCollided) {
+        this.sound.play("hit");
+      }
+      this.cameras.main.flash(100, 255, 255, 255);
+      this.cameras.main.shake(100, 0.001);
+    }
+  });
   this.physics.add.collider(bird, road);
 
   // UI setup
   uiStepup(this);
 
   // Score setup
-  // instructionMsg = this.add.text(0, 0, "Press 'SPACE' to start the game", {
-  //   fontFamily: '"Comic Sans MS", Times, serif',
-  //   fontSize: "20px",
-  //   color: "white",
-  //   backgroundColor: "black",
-  // });
-  // Phaser.Display.Align.In.BottomCenter(instructionMsg, background, 0, 50);
+  updateScoreDisplay(this);
 }
 
-function update() {
+function update(time, delta) {
   // Bird Falling Animations
   if (bird.body.velocity.y > 0) {
     if (bird.angle < 90) {
-      bird.angle += 4;
+      bird.angle += fallSpeed;
     }
   }
 
-  if (cursors.space.isDown) {
+  if (spaceKey.isDown) {
     if (hasLanded || hasCollided) {
       retryGame(this);
       return;
     }
 
-    // UI Animations
-    playBtn.setScale(0.9);
-    this.time.delayedCall(100, () => playBtn.setScale(1.0));
-    handleGameStart();
+    if (!isGameStarted) {
+      // UI Animations
+      playBtn.setScale(0.9);
+      this.time.delayedCall(100, () => playBtn.setScale(1.0));
+      handleGameStart(this);
+    } else if (time > lastFlapTime + 200) {
+      bird.setVelocityY(flyHeight);
+      bird.angle = -25;
+      this.sound.play("fly");
+      lastFlapTime = time;
+    }
   }
 
   if (!hasLanded && !hasCollided) {
     // Game Object Animations
     background.tilePositionX += playSpeed;
     road.tilePositionX += playSpeed;
-    road.setDepth(1);
 
     if (isGameStarted) {
       pillarPairs.forEach((pair) => {
         if (pair.topPillar) {
           pair.topPillar.x -= playSpeed;
           pair.topPillar.setDepth(0);
+
+          if (!pair.scored && pair.topPillar.x < bird.x) {
+            pair.scored = true;
+            score++;
+            this.sound.play("score");
+            updateScoreDisplay(this);
+          }
         }
 
         if (pair.bottomPillar) {
@@ -192,7 +226,6 @@ function update() {
     if (!hasShownGameOver) {
       hasShownGameOver = true;
       text2.setVisible(true);
-      text2.setDepth(2);
       playBtn.setVisible(true);
 
       bird.anims.stop();
@@ -201,10 +234,13 @@ function update() {
 }
 
 // Action Functions
-function handleGameStart() {
+function handleGameStart(scene) {
   playBtn.setVisible(false);
+  playBtn.setDepth(2);
   text1.setVisible(false);
+  text1.setDepth(2);
   text2.setVisible(false);
+  text2.setDepth(2);
 
   isGameStarted = true;
 
@@ -213,20 +249,41 @@ function handleGameStart() {
   }
 
   bird.body.setAllowGravity(true);
-  bird.setVelocityY(flySpeed);
-  bird.angle = -25;
 }
 
 function resetState() {
   pillarPairs.length = 0;
+  score = 0;
+  isGameStarted = false;
+  hasShownGameOver = false;
   hasLanded = false;
   hasCollided = false;
-  hasShownGameOver = false;
-  isGameStarted = false;
 }
 
 function retryGame(scene) {
   scene.scene.restart();
+}
+
+function updateScoreDisplay(scene) {
+  scoreImage.forEach((img) => img.destroy());
+  scoreImage = [];
+
+  const scoreStr = score.toString();
+  const margin = 20;
+  const startX =
+    canvasWidth - margin - scoreStr.length * digitWidth + digitWidth / 2;
+
+  for (let i = 0; i < scoreStr.length; i++) {
+    let digit = scoreStr[i];
+
+    let digitImage = scene.add.image(
+      startX + i * digitWidth,
+      40,
+      "num" + digit,
+    );
+    digitImage.setDepth(2);
+    scoreImage.push(digitImage);
+  }
 }
 
 // Setup Functions
@@ -296,5 +353,5 @@ function createRandomPillars(scene, x) {
   pillarGroup.add(topP);
   pillarGroup.add(bottomP);
 
-  return { topPillar: topP, bottomPillar: bottomP };
+  return { topPillar: topP, bottomPillar: bottomP, scored: false };
 }
