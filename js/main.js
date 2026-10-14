@@ -65,7 +65,7 @@ let idleTween;
 let pillarGroup;
 const pillarPairs = [];
 const entranceSize = 100;
-let spaceBetweenPillars = 300;
+let spaceBetweenPillars = 250;
 
 // Game Speed Variables
 const playSpeed = 3;
@@ -75,7 +75,7 @@ let lastFlapTime = 0;
 
 // Game State Variables
 let isGameStarted = false;
-let hasShownGameOver = false;
+let isGameOver = false;
 let canRestart = false;
 let hasLanded = false;
 let hasCollided = false;
@@ -133,9 +133,10 @@ function create() {
     if (!hasCollided) {
       hasCollided = true;
       this.sound.play("hit");
-      this.cameras.main.flash(100, 255, 255, 255);
-      this.cameras.main.shake(100, 0.001);
       this.sound.play("die");
+      this.cameras.main.flash(200, 255, 255, 255);
+      this.cameras.main.shake(300, 0.009);
+      triggerGameOver(this);
     }
   });
 
@@ -157,6 +158,7 @@ function create() {
       hasLanded = true;
     },
     hasCollided: () => hasCollided,
+    triggerGameOver: () => triggerGameOver(this),
   });
 
   // UI setup
@@ -175,13 +177,6 @@ function create() {
 }
 
 function update(time) {
-  // Bird Falling Animations
-  if (bird.body.velocity.y > 0) {
-    if (bird.angle < 90) {
-      bird.angle += fallSpeed;
-    }
-  }
-
   if (spaceKey.isDown) {
     if (hasLanded || hasCollided) {
       if (canRestart) retryGame(this);
@@ -199,6 +194,13 @@ function update(time) {
       bird.angle = -25;
       this.sound.play("fly");
       lastFlapTime = time;
+    }
+  }
+
+  // Bird Falling Animations
+  if (bird.body.velocity.y > 0) {
+    if (bird.angle < 90) {
+      bird.angle += fallSpeed;
     }
   }
 
@@ -255,51 +257,6 @@ function update(time) {
       }
     }
   }
-
-  // Game Over UI & Animations
-  if ((hasLanded || hasCollided) && !hasShownGameOver) {
-    hasShownGameOver = true;
-
-    text2.setAlpha(0);
-    text2.setVisible(true);
-
-    scoreBoard.y = canvasHeight + 60;
-    scoreBoard.setVisible(true);
-
-    playBtn.y = canvasHeight + 120;
-    playBtn.setVisible(true);
-    playBtn.disableInteractive();
-
-    this.tweens.add({
-      targets: text2,
-      alpha: 1,
-      duration: gameOverAnimDur,
-      ease: "Sine.easeInOut",
-    });
-
-    this.tweens.add({
-      targets: scoreBoard,
-      y: 300,
-      duration: gameOverAnimDur,
-      ease: "Sine.easeInOut",
-    });
-
-    displayBestScore(this, { bestScoreImage, bestScore });
-    displayScoreBoard(this, { scoreBoardImage, score });
-
-    this.tweens.add({
-      targets: playBtn,
-      y: 400,
-      duration: gameOverAnimDur,
-      ease: "Sine.easeInOut",
-      onComplete: () => {
-        playBtn.setInteractive();
-        canRestart = true;
-      },
-    });
-
-    bird.anims.stop();
-  }
 }
 
 // Action Functions
@@ -320,7 +277,7 @@ function resetState() {
   pillarPairs.length = 0;
   score = 0;
   isGameStarted = false;
-  hasShownGameOver = false;
+  isGameOver = false;
   canRestart = false;
   hasLanded = false;
   hasCollided = false;
@@ -328,4 +285,58 @@ function resetState() {
 
 function retryGame(scene) {
   scene.scene.restart();
+}
+
+function triggerGameOver(scene) {
+  if (isGameOver) {
+    return;
+  }
+
+  isGameOver = true;
+
+  scene.time.delayedCall(400, () => {
+    showGameOverUI(scene);
+  });
+}
+
+function showGameOverUI(scene) {
+  text2.setAlpha(0);
+  text2.setVisible(true);
+
+  scoreBoard.y = canvasHeight + 60;
+  scoreBoard.setVisible(true);
+
+  playBtn.y = canvasHeight + 120;
+  playBtn.setVisible(true);
+  playBtn.disableInteractive();
+
+  scene.tweens.add({
+    targets: text2,
+    alpha: 1,
+    duration: gameOverAnimDur,
+    ease: "Sine.easeInOut",
+  });
+
+  scene.tweens.add({
+    targets: scoreBoard,
+    y: 300,
+    duration: gameOverAnimDur,
+    ease: "Sine.easeInOut",
+  });
+
+  displayBestScore(scene, { bestScoreImage, bestScore });
+  displayScoreBoard(scene, { scoreBoardImage, score });
+
+  scene.tweens.add({
+    targets: playBtn,
+    y: 400,
+    duration: gameOverAnimDur,
+    ease: "Sine.easeInOut",
+    onComplete: () => {
+      playBtn.setInteractive();
+      canRestart = true;
+    },
+  });
+
+  bird.anims.stop();
 }

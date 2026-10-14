@@ -83,7 +83,7 @@ export function createRandomPillars(scene, { x, pillarGroup, entranceSize }) {
 
 export function roadSetup(
   scene,
-  { canvasWidth, bird, hasLanded, setLanded, hasCollided },
+  { canvasWidth, bird, hasLanded, setLanded, hasCollided, triggerGameOver },
 ) {
   const road = scene.add
     .tileSprite(250, 560, canvasWidth, 100, "road")
@@ -96,9 +96,10 @@ export function roadSetup(
       setLanded();
       if (!hasCollided()) {
         scene.sound.play("hit");
-        scene.cameras.main.flash(100, 255, 255, 255);
-        scene.cameras.main.shake(100, 0.001);
+        scene.cameras.main.flash(200, 255, 255, 255);
+        scene.cameras.main.shake(300, 0.009);
       }
+      triggerGameOver();
     }
   });
   scene.physics.add.collider(bird, road);
