@@ -41,6 +41,7 @@ new Phaser.Game(config);
 
 // Input Key Variables
 let spaceKey;
+let pressInput;
 
 // UI Object Variables
 let text1;
@@ -114,11 +115,7 @@ function create() {
 
   // Input setup
   spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-  this.input.on("pointerdown", () => {
-    if (isGameStarted && !hasLanded && !hasCollided) {
-      flap(this);
-    }
-  });
+  pressInput = this.input.activePointer;
 
   // Background setup
   background = this.add
@@ -169,9 +166,7 @@ function create() {
 
   // UI setup
   let uiObj = uiSetup(this, {
-    failCondition: () => hasLanded || hasCollided,
-    handleGameStart: () => handleGameStart(),
-    retryGame: () => retryGame(this),
+    handleInput: () => handlePlayerInput(this),
   });
   text1 = uiObj.text1;
   text2 = uiObj.text2;
@@ -182,45 +177,9 @@ function create() {
   updateScoreDisplay(this, { scoreImage, score, canvasWidth });
 }
 
-function flap(scene) {
-  if (hasLanded || hasCollided) {
-    return;
-  }
-
-  if (!isGameStarted) {
-    handleGameStart();
-    return;
-  }
-
-  const now = scene.time.now;
-
-  if (now <= lastFlapTime + 200) {
-    bird.setVelocityY(flyHeight);
-    bird.angle = -25;
-    this.sound.play("fly");
-    lastFlapTime = time;
-  }
-}
-
 function update(time) {
-  if (spaceKey.isDown) {
-    if (hasLanded || hasCollided) {
-      if (canRestart) retryGame(this);
-      return;
-    }
-
-    if (!isGameStarted) {
-      // UI Animations
-      playBtn.setScale(0.9);
-      this.time.delayedCall(100, () => playBtn.setScale(1.0));
-      handleGameStart();
-    } else if (time > lastFlapTime + 200) {
-      // Bird Fly Mechanics
-      bird.setVelocityY(flyHeight);
-      bird.angle = -25;
-      this.sound.play("fly");
-      lastFlapTime = time;
-    }
+  if (spaceKey.isDown || pressInput.isDown) {
+    handlePlayerInput(this);
   }
 
   // Bird Falling Animations
@@ -286,6 +245,32 @@ function update(time) {
 }
 
 // Action Functions
+function handlePlayerInput(scene) {
+  if (hasLanded || hasCollided) {
+    if (canRestart) {
+      retryGame(scene);
+    }
+
+    return;
+  }
+
+  if (!isGameStarted) {
+    handleGameStart();
+    return;
+  }
+
+  const currentTime = scene.time.now;
+
+  if (currentTime < lastFlapTime + 200) {
+    return;
+  }
+
+  bird.setVelocityY(flyHeight);
+  bird.angle = -25;
+  scene.sound.play("fly");
+  lastFlapTime = currentTime;
+}
+
 function handleGameStart() {
   playBtn.setVisible(false);
   text1.setVisible(false);

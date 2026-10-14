@@ -1,4 +1,4 @@
-export function uiSetup(scene, { failCondition, handleGameStart, retryGame }) {
+export function uiSetup(scene, { handleInput }) {
   const text1 = scene.add.image(250, 200, "text1");
   text1.setVisible(true);
   text1.setDepth(2);
@@ -24,11 +24,7 @@ export function uiSetup(scene, { failCondition, handleGameStart, retryGame }) {
   playBtn.on("pointerup", () => {
     playBtn.setScale(1.0);
 
-    if (failCondition()) {
-      retryGame(scene);
-    } else {
-      handleGameStart();
-    }
+    handleInput();
   });
 
   return { text1, text2, scoreBoard, playBtn };
