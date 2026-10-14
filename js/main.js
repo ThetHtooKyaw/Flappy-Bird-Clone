@@ -16,6 +16,7 @@ const canvasHeight = 600;
 
 let config = {
   renderer: Phaser.AUTO,
+  parent: "canvas",
   width: canvasWidth,
   height: canvasHeight,
   scale: {
