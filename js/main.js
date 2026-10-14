@@ -110,6 +110,20 @@ function preload() {
   this.load.image("bird_down", "assets/sprites/bird_wd1.png");
 }
 
+function unlockAudio(scene) {
+  if (scene.sound.locked) {
+    scene.sound.unlock();
+  }
+
+  const audioContext = scene.sound.context;
+
+  if (audioContext && audioContext.state === "suspended") {
+    audioContext.resume().catch((error) => {
+      console.error("Unable to resume audio", error);
+    });
+  }
+}
+
 function create() {
   resetState();
 
@@ -166,7 +180,10 @@ function create() {
 
   // UI setup
   let uiObj = uiSetup(this, {
-    handleInput: () => handlePlayerInput(this),
+    handleInput: () => {
+      unlockAudio(this);
+      handlePlayerInput(this);
+    },
   });
   text1 = uiObj.text1;
   text2 = uiObj.text2;

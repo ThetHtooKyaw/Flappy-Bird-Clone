@@ -13,22 +13,84 @@ body {
   align-items: center;
   min-height: 100vh;
 
-  background-image: url("../assets/images/canvas_bgv.webp");
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+    url("../assets/images/canvas_bgv.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background-color: #f0f0f0;
 }
 
 canvas {
   display: block;
   max-width: 100vw;
   max-height: calc(100vh);
-  /* border: 4px solid #ffffff; */
+}
+
+.developer-credit {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: 5px;
+
+  position: fixed;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #6d110d;
+  font-size: 20px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  font-family: "Questrial", sans-serif;
+
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px); /* Safari support for blur */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  padding: 6px 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  opacity: 0.85;
+  z-index: 1000;
+
+  pointer-events: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.developer-credit:hover {
+  transform: translateX(-50%) translateY(-6px);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  opacity: 1;
+}
+
+.developer-credit .name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  color: #6d110d;
+  font-weight: bold;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.icon {
+  display: inline-block;
+  width: 25px;
+  height: 25px;
+  background-color: #6d110d;
+  -webkit-mask: url("../assets/icons/open.webp") no-repeat center / contain;
+  mask: url("../assets/icons/open.webp") no-repeat center / contain;
 }
 
 @media (orientation: portrait) {
   body {
-    background-image: url("../assets/images/canvas_bgh.webp");
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)),
+      url("../assets/images/canvas_bgh.webp");
   }
 }
