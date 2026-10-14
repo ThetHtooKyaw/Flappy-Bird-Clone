@@ -32,9 +32,11 @@ function renderNumbers(scene, value, y, imageArray) {
   imageArray.length = 0;
 
   const scoreStr = value.toString();
+  const margin = 20;
   const digitWidth = 15;
-  const scoreX = 342;
-  const startX = scoreX - (scoreStr.length * digitWidth) / 2;
+  const scoreX = 362;
+  const startX =
+    scoreX - margin - scoreStr.length * digitWidth + digitWidth / 2;
 
   for (let i = 0; i < scoreStr.length; i++) {
     const digitImage = scene.add.image(

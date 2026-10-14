@@ -114,6 +114,11 @@ function create() {
 
   // Input setup
   spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+  this.input.on("pointerdown", () => {
+    if (isGameStarted && !hasLanded && !hasCollided) {
+      flap(this);
+    }
+  });
 
   // Background setup
   background = this.add
@@ -175,6 +180,26 @@ function create() {
 
   // Score setup
   updateScoreDisplay(this, { scoreImage, score, canvasWidth });
+}
+
+function flap(scene) {
+  if (hasLanded || hasCollided) {
+    return;
+  }
+
+  if (!isGameStarted) {
+    handleGameStart();
+    return;
+  }
+
+  const now = scene.time.now;
+
+  if (now <= lastFlapTime + 200) {
+    bird.setVelocityY(flyHeight);
+    bird.angle = -25;
+    this.sound.play("fly");
+    lastFlapTime = time;
+  }
 }
 
 function update(time) {
