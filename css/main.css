@@ -38,7 +38,7 @@ canvas {
   left: 50%;
   transform: translateX(-50%);
   color: #6d110d;
-  font-size: 20px;
+  font-size: clamp(14px, 3.5vw, 20px);
   font-weight: bold;
   letter-spacing: 0.5px;
   font-family: "Questrial", sans-serif;
@@ -80,8 +80,8 @@ canvas {
 
 .icon {
   display: inline-block;
-  width: 25px;
-  height: 25px;
+  width: clamp(20px, 3.5vw, 25px);
+  height: clamp(20px, 3.5vw, 25px);
   background-color: #6d110d;
   -webkit-mask: url("../assets/icons/open.webp") no-repeat center / contain;
   mask: url("../assets/icons/open.webp") no-repeat center / contain;
