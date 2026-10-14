@@ -6,12 +6,11 @@ A browser-based Flappy Bird clone built with Phaser 3, JavaScript ES modules, an
 
 ## Features
 
-- **Flappy Bird gameplay:** Control the bird as it flies through pillar gaps.
-- **Random pillar generation:** New pillar pairs are generated continuously as the bird progresses.
-- **Score tracking:** Earn points by passing pillars.
-- **Best score tracking:** The highest score from the current session is displayed on the game-over screen.
 - **Responsive canvas:** Phaser's `FIT` scale mode adapts the game to desktop and mobile screen sizes.
 - **Multiple input methods:** Play with the Space key, mouse clicks, or mobile touch input.
+- **Flappy Bird gameplay:** Control the bird as it flies through pillar gaps.
+- **Random pillar generation:** New pillar pairs are generated continuously as the bird progresses.
+- **Score tracking:** Earn points by passing pillars & record the highest score from the overall session.
 - **Animated game-over screen:** Displays the current score and best score with transitions.
 - **Sound effects:** Includes sounds for flapping, scoring, collisions, and game over.
 - **Collision effects:** Camera flash and shake effects provide feedback when the bird hits an obstacle.
@@ -65,10 +64,12 @@ flappy_bird/
 
 **Clone the repository:**
 
-    ```sh
-    git clone https://github.com/ThetHtooKyaw/Flappy-Bird-Clone.git
-    cd Flappy-Bird-Clone
-    ```
+   ```sh
+   git clone https://github.com/ThetHtooKyaw/Flappy-Bird-Clone.git
+   cd Flappy-Bird-Clone
+   ```
+
+---
 
 ### Run the game locally
 
