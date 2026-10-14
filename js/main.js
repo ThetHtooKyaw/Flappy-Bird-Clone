@@ -1,3 +1,16 @@
+import {
+  uiSetup,
+  birdSetup,
+  createRandomPillars,
+  roadSetup,
+} from "./components/set_up.js";
+
+import {
+  updateScoreDisplay,
+  displayBestScore,
+  displayScoreBoard,
+} from "./components/score.js";
+
 const canvasWidth = 500;
 const canvasHeight = 600;
 
@@ -23,7 +36,7 @@ let config = {
   },
 };
 
-let game = new Phaser.Game(config);
+new Phaser.Game(config);
 
 // Input Key Variables
 let spaceKey;
@@ -31,21 +44,28 @@ let spaceKey;
 // UI Object Variables
 let text1;
 let text2;
+let scoreBoard;
 let playBtn;
+const gameOverAnimDur = 600;
+
+// Score Variables
+let scoreImage = [];
+let bestScoreImage = [];
+let scoreBoardImage = [];
+let bestScore = 0;
+let score = 0;
 
 // Game Object Variables
 let background;
-let topPillar;
-let bottomPillar;
 let road;
 let bird;
 let idleTween;
 
-// Game State Variables
-let isGameStarted = false;
-let hasShownGameOver = false;
-let hasLanded = false;
-let hasCollided = false;
+// Pillar Variables
+let pillarGroup;
+const pillarPairs = [];
+const entranceSize = 100;
+let spaceBetweenPillars = 300;
 
 // Game Speed Variables
 const playSpeed = 3;
@@ -53,21 +73,18 @@ const flyHeight = -250;
 const fallSpeed = 4;
 let lastFlapTime = 0;
 
-// Score Variables
-let scoreImage = [];
-let score = 0;
-let digitWidth = 30;
-
-// Pillar Variables
-let pillarGroup;
-const pillarPairs = [];
-const gapSize = 100;
-let gapBetweenPillars = 300;
+// Game State Variables
+let isGameStarted = false;
+let hasShownGameOver = false;
+let canRestart = false;
+let hasLanded = false;
+let hasCollided = false;
 
 function preload() {
   // UI Assets
   this.load.image("text1", "assets/ui/text1.png");
   this.load.image("text2", "assets/ui/text2.png");
+  this.load.image("score_board", "assets/ui/score_board.png");
   this.load.image("play_button", "assets/ui/play_btn.png");
   for (let i = 0; i <= 9; i++) {
     this.load.image("num" + i, `assets/ui/num${i}.png`);
@@ -103,7 +120,9 @@ function create() {
     .setOrigin(0, 0);
 
   // Bird setup
-  birdStepup(this);
+  let birdObj = birdSetup(this);
+  bird = birdObj.bird;
+  idleTween = birdObj.idleTween;
 
   // Pillars setup
   pillarGroup = this.physics.add.group({
@@ -121,37 +140,41 @@ function create() {
   });
 
   for (let i = 0; i < 3; i++) {
-    const pair = createRandomPillars(this, 600 + i * gapBetweenPillars);
+    const pair = createRandomPillars(this, {
+      x: 600 + i * spaceBetweenPillars,
+      pillarGroup,
+      entranceSize,
+    });
     pillarPairs.push(pair);
   }
 
   // Road setup
-  road = this.add
-    .tileSprite(250, 560, canvasWidth, 100, "road")
-    .setOrigin(0.5, 0.5);
-  this.physics.add.existing(road, true);
-  road.setDepth(1);
-
-  this.physics.add.overlap(bird, road, () => {
-    if (!hasLanded) {
+  road = roadSetup(this, {
+    canvasWidth,
+    bird,
+    hasLanded: () => hasLanded,
+    setLanded: () => {
       hasLanded = true;
-      if (!hasCollided) {
-        this.sound.play("hit");
-      }
-      this.cameras.main.flash(100, 255, 255, 255);
-      this.cameras.main.shake(100, 0.001);
-    }
+    },
+    hasCollided: () => hasCollided,
   });
-  this.physics.add.collider(bird, road);
 
   // UI setup
-  uiStepup(this);
+  let uiObj = uiSetup(this, {
+    failCondition: () => hasLanded || hasCollided,
+    handleGameStart: () => handleGameStart(),
+    retryGame: () => retryGame(this),
+  });
+  text1 = uiObj.text1;
+  text2 = uiObj.text2;
+  scoreBoard = uiObj.scoreBoard;
+  playBtn = uiObj.playBtn;
 
   // Score setup
-  updateScoreDisplay(this);
+  updateScoreDisplay(this, { scoreImage, score, canvasWidth });
 }
 
-function update(time, delta) {
+function update(time) {
   // Bird Falling Animations
   if (bird.body.velocity.y > 0) {
     if (bird.angle < 90) {
@@ -161,7 +184,7 @@ function update(time, delta) {
 
   if (spaceKey.isDown) {
     if (hasLanded || hasCollided) {
-      retryGame(this);
+      if (canRestart) retryGame(this);
       return;
     }
 
@@ -169,8 +192,9 @@ function update(time, delta) {
       // UI Animations
       playBtn.setScale(0.9);
       this.time.delayedCall(100, () => playBtn.setScale(1.0));
-      handleGameStart(this);
+      handleGameStart();
     } else if (time > lastFlapTime + 200) {
+      // Bird Fly Mechanics
       bird.setVelocityY(flyHeight);
       bird.angle = -25;
       this.sound.play("fly");
@@ -193,7 +217,11 @@ function update(time, delta) {
             pair.scored = true;
             score++;
             this.sound.play("score");
-            updateScoreDisplay(this);
+            updateScoreDisplay(this, { scoreImage, score, canvasWidth });
+
+            if (score > bestScore) {
+              bestScore = score;
+            }
           }
         }
 
@@ -209,8 +237,12 @@ function update(time, delta) {
         ? lastPair.topPillar.x
         : lastPair.bottomPillar.x;
 
-      if (lastX < gapBetweenPillars + 50) {
-        const newpair = createRandomPillars(this, lastX + gapBetweenPillars);
+      if (lastX < spaceBetweenPillars + 50) {
+        const newpair = createRandomPillars(this, {
+          x: lastX + spaceBetweenPillars,
+          pillarGroup,
+          entranceSize,
+        });
         pillarPairs.push(newpair);
 
         const oldPair = pillarPairs.shift();
@@ -222,26 +254,59 @@ function update(time, delta) {
         }
       }
     }
-  } else if (hasLanded || hasCollided) {
-    if (!hasShownGameOver) {
-      hasShownGameOver = true;
-      text2.setVisible(true);
-      playBtn.setVisible(true);
+  }
 
-      bird.anims.stop();
-    }
+  // Game Over UI & Animations
+  if ((hasLanded || hasCollided) && !hasShownGameOver) {
+    hasShownGameOver = true;
+
+    text2.setAlpha(0);
+    text2.setVisible(true);
+
+    scoreBoard.y = canvasHeight + 60;
+    scoreBoard.setVisible(true);
+
+    playBtn.y = canvasHeight + 120;
+    playBtn.setVisible(true);
+    playBtn.disableInteractive();
+
+    this.tweens.add({
+      targets: text2,
+      alpha: 1,
+      duration: gameOverAnimDur,
+      ease: "Sine.easeInOut",
+    });
+
+    this.tweens.add({
+      targets: scoreBoard,
+      y: 300,
+      duration: gameOverAnimDur,
+      ease: "Sine.easeInOut",
+    });
+
+    displayBestScore(this, { bestScoreImage, bestScore });
+    displayScoreBoard(this, { scoreBoardImage, score });
+
+    this.tweens.add({
+      targets: playBtn,
+      y: 400,
+      duration: gameOverAnimDur,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        playBtn.setInteractive();
+        canRestart = true;
+      },
+    });
+
+    bird.anims.stop();
   }
 }
 
 // Action Functions
-function handleGameStart(scene) {
+function handleGameStart() {
   playBtn.setVisible(false);
-  playBtn.setDepth(2);
   text1.setVisible(false);
-  text1.setDepth(2);
   text2.setVisible(false);
-  text2.setDepth(2);
-
   isGameStarted = true;
 
   if (idleTween) {
@@ -256,102 +321,11 @@ function resetState() {
   score = 0;
   isGameStarted = false;
   hasShownGameOver = false;
+  canRestart = false;
   hasLanded = false;
   hasCollided = false;
 }
 
 function retryGame(scene) {
   scene.scene.restart();
-}
-
-function updateScoreDisplay(scene) {
-  scoreImage.forEach((img) => img.destroy());
-  scoreImage = [];
-
-  const scoreStr = score.toString();
-  const margin = 20;
-  const startX =
-    canvasWidth - margin - scoreStr.length * digitWidth + digitWidth / 2;
-
-  for (let i = 0; i < scoreStr.length; i++) {
-    let digit = scoreStr[i];
-
-    let digitImage = scene.add.image(
-      startX + i * digitWidth,
-      40,
-      "num" + digit,
-    );
-    digitImage.setDepth(2);
-    scoreImage.push(digitImage);
-  }
-}
-
-// Setup Functions
-function uiStepup(scene) {
-  text1 = scene.add.image(250, 200, "text1");
-  text1.setVisible(true);
-  text2 = scene.add.image(250, 200, "text2");
-  text2.setVisible(false);
-  // text2.setAlpha(0);
-
-  playBtn = scene.add.image(250, 380, "play_button");
-  playBtn.setInteractive();
-  playBtn.on("pointerdown", () => {
-    playBtn.setScale(0.9);
-  });
-
-  playBtn.on("pointerup", () => {
-    playBtn.setScale(1.0);
-
-    if (hasLanded || hasCollided) {
-      retryGame(scene);
-    } else {
-      handleGameStart();
-    }
-  });
-}
-
-function birdStepup(scene) {
-  bird = scene.physics.add.sprite(250, 280, "bird_mid");
-
-  // Animation
-  scene.anims.create({
-    key: "fly",
-    frames: [{ key: "bird_up" }, { key: "bird_mid" }, { key: "bird_down" }],
-    frameRate: 10,
-    repeat: -1,
-  });
-
-  idleTween = scene.tweens.add({
-    targets: bird,
-    y: bird.y + 15,
-    duration: 600,
-    yoyo: true,
-    repeat: -1,
-    ease: "Sine.easeInOut",
-  });
-
-  bird.play("fly");
-  bird.setCollideWorldBounds(true);
-  bird.body.setAllowGravity(false);
-  bird.setDepth(10);
-}
-
-function createRandomPillars(scene, x) {
-  const gapY = Phaser.Math.Between(100, 400 - gapSize);
-
-  const topP = scene.physics.add
-    .sprite(x, gapY, "top_pillar")
-    .setOrigin(0.5, 1)
-    .setScale(1, 1.5);
-
-  const bottomP = scene.physics.add
-    .sprite(x, gapY + gapSize, "bottom_pillar")
-    .setOrigin(0.5, 0)
-    .setScale(1, 1.5);
-
-  pillarGroup.add(topP);
-  pillarGroup.add(bottomP);
-
-  return { topPillar: topP, bottomPillar: bottomP, scored: false };
 }
