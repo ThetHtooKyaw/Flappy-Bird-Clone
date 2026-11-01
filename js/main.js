@@ -304,6 +304,7 @@ function handleGameStart() {
 function resetState() {
   pillarPairs.length = 0;
   score = 0;
+  lastFlapTime = 0;
   isGameStarted = false;
   isGameOver = false;
   canRestart = false;
