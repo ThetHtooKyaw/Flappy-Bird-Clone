@@ -135,6 +135,14 @@ function create() {
   spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   pressInput = this.input.activePointer;
 
+  this.input.on("pointerdown", () => {
+    if (!playBtn || playBtn.visible || !canInputStart) {
+      return;
+    }
+
+    handlePlayerInput(this);
+  });
+
   // Background setup
   background = this.add
     .tileSprite(0, 0, canvasWidth, canvasHeight, "background")
