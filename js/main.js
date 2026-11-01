@@ -316,6 +316,8 @@ function handlePlayerInput(scene) {
     return;
   }
 
+  let isFirstFlap = false;
+
   if (!isGameStarted) {
     if (!canInputStart) {
       return;
@@ -324,6 +326,7 @@ function handlePlayerInput(scene) {
     isGameStarted = true;
     isWaitingToStart = false;
     canInputStart = false;
+    isFirstFlap = true;
 
     if (idleTween) {
       idleTween.stop();
@@ -334,7 +337,7 @@ function handlePlayerInput(scene) {
 
   const currentTime = scene.time.now;
 
-  if (currentTime < lastFlapTime + 200) {
+  if (!isFirstFlap && currentTime < lastFlapTime + 200) {
     return;
   }
 
