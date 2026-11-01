@@ -41,7 +41,12 @@ new Phaser.Game(config);
 
 // Input Key Variables
 let spaceKey;
-let pressInput;
+
+// Input State Variables
+let isTouchDown = false;
+let canInputStart = false;
+let ignorePointerUntilRelease = false;
+let ignoreSpaceUntilRelease = false;
 
 // UI Object Variables
 let text1;
@@ -77,9 +82,6 @@ let lastFlapTime = 0;
 
 // Game State Variables
 let isWaitingToStart = false;
-let canInputStart = false;
-let ignorePointerUntilRelease = false;
-let ignoreSpaceUntilRelease = false;
 let isGameStarted = false;
 let isGameOver = false;
 let canRestart = false;
@@ -133,14 +135,18 @@ function create() {
 
   // Input setup
   spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-  pressInput = this.input.activePointer;
 
   this.input.on("pointerdown", () => {
-    if (!playBtn || playBtn.visible || !canInputStart) {
-      return;
-    }
+    isTouchDown = true;
 
-    handlePlayerInput(this);
+    if (!playBtn.visible && canInputStart && !ignorePointerUntilRelease) {
+      handlePlayerInput(this);
+    }
+  });
+
+  this.input.on("pointerup", () => {
+    isTouchDown = false;
+    ignorePointerUntilRelease = false;
   });
 
   // Background setup
@@ -208,10 +214,6 @@ function create() {
 
 function update(time) {
   // Input Handling
-  if (!pressInput.isDown) {
-    ignorePointerUntilRelease = false;
-  }
-
   if (!spaceKey.isDown) {
     ignoreSpaceUntilRelease = false;
   }
@@ -229,7 +231,7 @@ function update(time) {
     handlePlayerInput(this);
   }
 
-  if (pressInput.isDown && !ignorePointerUntilRelease) {
+  if (isTouchDown && !ignorePointerUntilRelease) {
     handlePlayerInput(this);
   }
 
@@ -370,10 +372,13 @@ function handleGameStart(scene) {
 function resetState() {
   pillarPairs.length = 0;
   score = 0;
-  isWaitingToStart = false;
+
+  isTouchDown = false;
   canInputStart = false;
   ignorePointerUntilRelease = false;
   ignoreSpaceUntilRelease = false;
+
+  isWaitingToStart = false;
   isGameStarted = false;
   isGameOver = false;
   canRestart = false;
