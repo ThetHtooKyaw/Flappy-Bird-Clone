@@ -81,8 +81,9 @@ const fallSpeed = 4;
 let lastFlapTime = 0;
 
 // Game State Variables
-let isWaitingToStart = false;
 let isGameStarted = false;
+let isPillarsMoving = false;
+let isWaitingToStart = false;
 let isGameOver = false;
 let canRestart = false;
 let hasLanded = false;
@@ -166,6 +167,10 @@ function create() {
   });
   this.physics.add.overlap(bird, pillarGroup, () => {
     if (!hasCollided) {
+      if (isWaitingToStart) {
+        makeBirdFall();
+      }
+
       hasCollided = true;
       this.sound.play("hit");
       this.sound.play("die");
@@ -177,7 +182,7 @@ function create() {
 
   for (let i = 0; i < 3; i++) {
     const pair = createRandomPillars(this, {
-      x: 600 + i * spaceBetweenPillars,
+      x: 800 + i * spaceBetweenPillars,
       pillarGroup,
       entranceSize,
     });
@@ -213,27 +218,7 @@ function create() {
 }
 
 function update(time) {
-  // Input Handling
-  if (!spaceKey.isDown) {
-    ignoreSpaceUntilRelease = false;
-  }
-
-  if (Phaser.Input.Keyboard.JustDown(spaceKey)) {
-    if (!isGameStarted && !isWaitingToStart) {
-      handlePlayButton(this);
-      ignoreSpaceUntilRelease = true;
-    } else {
-      handlePlayerInput(this);
-    }
-  }
-
-  if (spaceKey.isDown && !ignoreSpaceUntilRelease) {
-    handlePlayerInput(this);
-  }
-
-  if (isTouchDown && !ignorePointerUntilRelease) {
-    handlePlayerInput(this);
-  }
+  handleInput(this);
 
   // Bird Falling Animations
   if (bird.body.velocity.y > 0) {
@@ -247,7 +232,7 @@ function update(time) {
     background.tilePositionX += playSpeed;
     road.tilePositionX += playSpeed;
 
-    if (isGameStarted) {
+    if (isPillarsMoving) {
       pillarPairs.forEach((pair) => {
         if (pair.topPillar) {
           pair.topPillar.x -= playSpeed;
@@ -298,6 +283,29 @@ function update(time) {
 }
 
 // Action Functions
+function handleInput(scene) {
+  if (!spaceKey.isDown) {
+    ignoreSpaceUntilRelease = false;
+  }
+
+  if (Phaser.Input.Keyboard.JustDown(spaceKey)) {
+    if (!isGameStarted && !isWaitingToStart) {
+      handlePlayButton(scene);
+      ignoreSpaceUntilRelease = true;
+    } else {
+      handlePlayerInput(scene);
+    }
+  }
+
+  if (spaceKey.isDown && !ignoreSpaceUntilRelease) {
+    handlePlayerInput(scene);
+  }
+
+  if (isTouchDown && !ignorePointerUntilRelease) {
+    handlePlayerInput(scene);
+  }
+}
+
 function handlePlayButton(scene) {
   if (canRestart) {
     retryGame(scene);
@@ -309,54 +317,15 @@ function handlePlayButton(scene) {
   }
 }
 
-function handlePlayerInput(scene) {
-  if (hasLanded || hasCollided) {
-    if (canRestart) {
-      retryGame(scene);
-    }
-
-    return;
-  }
-
-  let isFirstFlap = false;
-
-  if (!isGameStarted) {
-    if (!canInputStart) {
-      return;
-    }
-
-    isGameStarted = true;
-    isWaitingToStart = false;
-    canInputStart = false;
-    isFirstFlap = true;
-
-    if (idleTween) {
-      idleTween.stop();
-    }
-
-    bird.body.setAllowGravity(true);
-  }
-
-  const currentTime = scene.time.now;
-
-  if (!isFirstFlap && currentTime < lastFlapTime + 200) {
-    return;
-  }
-
-  bird.setVelocityY(flyHeight);
-  bird.angle = -25;
-  scene.sound.play("fly");
-  lastFlapTime = currentTime;
-}
-
 function handleGameStart(scene) {
   playBtn.setVisible(false);
   text1.setVisible(false);
   text2.setVisible(false);
 
-  isWaitingToStart = true;
   canInputStart = false;
   ignorePointerUntilRelease = true;
+  isPillarsMoving = true;
+  isWaitingToStart = true;
 
   scene.tweens.add({
     targets: bird,
@@ -369,6 +338,53 @@ function handleGameStart(scene) {
   });
 }
 
+function handlePlayerInput(scene) {
+  if (hasLanded || hasCollided) {
+    if (canRestart) {
+      retryGame(scene);
+    }
+
+    return;
+  }
+
+  if (!isGameStarted) {
+    if (!canInputStart) {
+      return;
+    }
+
+    isGameStarted = true;
+    isWaitingToStart = false;
+    canInputStart = false;
+
+    if (idleTween) {
+      idleTween.stop();
+    }
+
+    bird.body.setAllowGravity(true);
+  }
+
+  const currentTime = scene.time.now;
+
+  if (currentTime < lastFlapTime + 200) {
+    return;
+  }
+
+  bird.setVelocityY(flyHeight);
+  bird.angle = -25;
+  scene.sound.play("fly");
+  lastFlapTime = currentTime;
+}
+
+function makeBirdFall() {
+  if (idleTween) {
+    idleTween.stop();
+  }
+
+  bird.body.setAllowGravity(true);
+  isWaitingToStart = false;
+  canInputStart = false;
+}
+
 function resetState() {
   pillarPairs.length = 0;
   score = 0;
@@ -378,8 +394,9 @@ function resetState() {
   ignorePointerUntilRelease = false;
   ignoreSpaceUntilRelease = false;
 
-  isWaitingToStart = false;
   isGameStarted = false;
+  isPillarsMoving = false;
+  isWaitingToStart = false;
   isGameOver = false;
   canRestart = false;
   hasLanded = false;
