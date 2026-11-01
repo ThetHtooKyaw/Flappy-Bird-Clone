@@ -76,6 +76,10 @@ const fallSpeed = 4;
 let lastFlapTime = 0;
 
 // Game State Variables
+let isWaitingToStart = false;
+let canInputStart = false;
+let ignorePointerUntilRelease = false;
+let ignoreSpaceUntilRelease = false;
 let isGameStarted = false;
 let isGameOver = false;
 let canRestart = false;
@@ -180,9 +184,9 @@ function create() {
 
   // UI setup
   let uiObj = uiSetup(this, {
-    handleInput: () => {
+    handlePlayButton: () => {
       unlockAudio(this);
-      handlePlayerInput(this);
+      handlePlayButton(this);
     },
   });
   text1 = uiObj.text1;
@@ -195,7 +199,29 @@ function create() {
 }
 
 function update(time) {
-  if (spaceKey.isDown || pressInput.isDown) {
+  // Input Handling
+  if (!pressInput.isDown) {
+    ignorePointerUntilRelease = false;
+  }
+
+  if (!spaceKey.isDown) {
+    ignoreSpaceUntilRelease = false;
+  }
+
+  if (Phaser.Input.Keyboard.JustDown(spaceKey)) {
+    if (!isGameStarted && !isWaitingToStart) {
+      handlePlayButton(this);
+      ignoreSpaceUntilRelease = true;
+    } else {
+      handlePlayerInput(this);
+    }
+  }
+
+  if (spaceKey.isDown && !ignoreSpaceUntilRelease) {
+    handlePlayerInput(this);
+  }
+
+  if (pressInput.isDown && !ignorePointerUntilRelease) {
     handlePlayerInput(this);
   }
 
@@ -262,6 +288,17 @@ function update(time) {
 }
 
 // Action Functions
+function handlePlayButton(scene) {
+  if (canRestart) {
+    retryGame(scene);
+    return;
+  }
+
+  if (!isWaitingToStart && !isGameStarted) {
+    handleGameStart(scene);
+  }
+}
+
 function handlePlayerInput(scene) {
   if (hasLanded || hasCollided) {
     if (canRestart) {
@@ -272,8 +309,19 @@ function handlePlayerInput(scene) {
   }
 
   if (!isGameStarted) {
-    handleGameStart();
-    return;
+    if (!canInputStart) {
+      return;
+    }
+
+    isGameStarted = true;
+    isWaitingToStart = false;
+    canInputStart = false;
+
+    if (idleTween) {
+      idleTween.stop();
+    }
+
+    bird.body.setAllowGravity(true);
   }
 
   const currentTime = scene.time.now;
@@ -288,23 +336,33 @@ function handlePlayerInput(scene) {
   lastFlapTime = currentTime;
 }
 
-function handleGameStart() {
+function handleGameStart(scene) {
   playBtn.setVisible(false);
   text1.setVisible(false);
   text2.setVisible(false);
-  isGameStarted = true;
 
-  if (idleTween) {
-    idleTween.stop();
-  }
+  isWaitingToStart = true;
+  canInputStart = false;
+  ignorePointerUntilRelease = true;
 
-  bird.body.setAllowGravity(true);
+  scene.tweens.add({
+    targets: bird,
+    x: 100,
+    duration: 400,
+    ease: "Sine.easeInOut",
+    onComplete: () => {
+      canInputStart = true;
+    },
+  });
 }
 
 function resetState() {
   pillarPairs.length = 0;
   score = 0;
-  lastFlapTime = 0;
+  isWaitingToStart = false;
+  canInputStart = false;
+  ignorePointerUntilRelease = false;
+  ignoreSpaceUntilRelease = false;
   isGameStarted = false;
   isGameOver = false;
   canRestart = false;

@@ -1,4 +1,4 @@
-export function uiSetup(scene, { handleInput }) {
+export function uiSetup(scene, { handlePlayButton }) {
   const text1 = scene.add.image(250, 200, "text1");
   text1.setVisible(true);
   text1.setDepth(2);
@@ -19,12 +19,15 @@ export function uiSetup(scene, { handleInput }) {
   // Button Interactions
   playBtn.on("pointerdown", () => {
     playBtn.setScale(0.9);
+    handlePlayButton();
   });
 
   playBtn.on("pointerup", () => {
     playBtn.setScale(1.0);
+  });
 
-    handleInput();
+  playBtn.on("pointerout", () => {
+    playBtn.setScale(1.0);
   });
 
   return { text1, text2, scoreBoard, playBtn };
